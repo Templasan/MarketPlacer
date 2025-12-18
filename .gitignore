@@ -1,0 +1,59 @@
+# =========================
+# GERAL / OS / IDEs
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.suo
+*.user
+.vs/
+
+# =========================
+# BACKEND (.NET / C#)
+# =========================
+# Pastas de compilação (pesadas e geradas automaticamente)
+[Bb]in/
+[Oo]bj/
+
+# Configurações de usuário e secrets
+appsettings.Development.json
+appsettings.Local.json
+*.user
+
+# Banco de dados local (se estiver usando arquivos .mdf ou SQLite)
+*.mdf
+*.ldf
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# =========================
+# FRONTEND (Angular / Node)
+# =========================
+# Dependências (Extremamente pesado - NUNCA suba isso)
+node_modules/
+
+# Build de produção
+/Frontend/dist/
+/Frontend/tmp/
+/Frontend/out-tsc/
+
+# Cache do Angular
+.angular/
+
+# Arquivos de log do NPM
+npm-debug.log
+yarn-error.log
+
+# Testes de cobertura
+coverage/
+
+# =========================
+# PROJETOS ESPECÍFICOS
+# =========================
+# Ignorar arquivos temporários de migração do EF Core (opcional)
+# Backend/MarketPlacer.DAL/Migrations/*

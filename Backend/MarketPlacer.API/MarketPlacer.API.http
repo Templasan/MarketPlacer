@@ -1,0 +1,6 @@
+@MarketPlacer.API_HostAddress = http://localhost:5235
+
+GET {{MarketPlacer.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
