@@ -1,34 +1,43 @@
 using System.Text;
 using MarketPlacer.DAL;
 using MarketPlacer.DAL.Repositories;
+using MarketPlacer.Business.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. CONFIGURAÇÃO DO BANCO (Onde estava faltando) ---
-// Pega a string de conexão do appsettings.json e liga ao AppDbContext
+// --- 1. CONFIGURAÇÃO DO BANCO ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- 2. CONFIGURAÇÃO DOS REPOSITÓRIOS ---
+// --- 2. CONFIGURAÇÃO DE REPOSITÓRIOS E SERVICES ---
+// Injeções Genéricas
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+// Repositórios Específicos
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<MarketPlacer.Business.Services.OrderService>();
-
-
-
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<MarketPlacer.Business.Services.ProductService>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
 
-builder.Services.AddScoped<MarketPlacer.Business.Services.AuthService>();
+// Serviços de Negócio
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<CartService>();
+builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<HomeService>();
 
+builder.Services.AddMemoryCache(); // Necessário para o HomeService
 
-var key = Encoding.ASCII.GetBytes("MinhaChaveSuperSecretaDeDesenvolvimento123456"); // A mesma chave do AuthService
+// --- 3. CONFIGURAÇÃO DO JWT (AUTENTICAÇÃO) ---
+// CHAVE IDÊNTICA AO AUTHSERVICE:
+var keyString = "Chave_Mestra_Super_Secreta_Fatec_2025_Minimo_32_Chars!";
+var key = Encoding.ASCII.GetBytes(keyString);
 
 builder.Services.AddAuthentication(x =>
 {
@@ -43,54 +52,53 @@ builder.Services.AddAuthentication(x =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false, // Simplificado para MVP
-        ValidateAudience = false // Simplificado para MVP
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        // CORREÇÃO DA ROLE: Faz o C# entender a claim "role" do seu token
+        RoleClaimType = ClaimTypes.Role
     };
 });
 
-
-
-// Configurações padrão da API
+// --- 4. CONFIGURAÇÃO DA API E SWAGGER ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "MarketPlacer API", Version = "v1" });
 
-    // Define que a API usa segurança tipo JWT (Bearer)
+    // Configuração do Botão "Authorize" (Cadeado)
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = @"Cabeçalho de autorização JWT usando o esquema Bearer.
-                      \r\n\r\n Digite 'Bearer' [espaço] e depois seu token na caixa de texto abaixo.
-                      \r\n\r\nExemplo: 'Bearer 12345abcdef'",
+        Description = "Digite 'Bearer' [espaço] e o seu token.\nExemplo: Bearer eyJhbGci...",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header,
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
-            new List<string>()
+            new string[] {}
         }
     });
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
 var app = builder.Build();
 
-// Configura o Pipeline HTTP
+// --- 5. PIPELINE DE EXECUÇÃO ---
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -98,7 +106,12 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
+
+// A ORDEM AQUI É SAGRADA PARA O AUTH FUNCIONAR
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

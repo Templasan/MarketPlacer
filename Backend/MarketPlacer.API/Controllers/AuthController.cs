@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MarketPlacer.Business.Services;
 using MarketPlacer.DAL.Models;
+using MarketPlacer.API.Dtos;
 
 namespace MarketPlacer.API.Controllers;
 
@@ -16,12 +17,29 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(User user)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         try
         {
+            // Convertemos o DTO para a Entidade User antes de enviar para o Service
+            var user = new User
+            {
+                Nome = request.Nome,
+                Email = request.Email,
+                Senha = request.Senha, // No futuro, você fará o Hash aqui
+                Tipo = request.Tipo,
+                Ativo = true
+            };
+
             var createdUser = await _authService.RegisterAsync(user);
-            return Ok(createdUser);
+
+            // Retornamos um objeto limpo para não expor a senha no retorno
+            return Ok(new
+            {
+                Id = createdUser.Id,
+                Nome = createdUser.Nome,
+                Email = createdUser.Email
+            });
         }
         catch (Exception ex)
         {

@@ -4,6 +4,7 @@ using MarketPlacer.DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MarketPlacer.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251219195033_AddUserAtivo")]
+    partial class AddUserAtivo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,54 +24,6 @@ namespace MarketPlacer.DAL.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("MarketPlacer.DAL.Models.Cart", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("Carts");
-                });
-
-            modelBuilder.Entity("MarketPlacer.DAL.Models.CartItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("AddedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CartId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CartId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("CartItems");
-                });
 
             modelBuilder.Entity("MarketPlacer.DAL.Models.Order", b =>
                 {
@@ -78,19 +33,19 @@ namespace MarketPlacer.DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("OrderDate")
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DataPedido")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("ClienteId");
 
                     b.ToTable("Orders");
                 });
@@ -106,14 +61,14 @@ namespace MarketPlacer.DAL.Migrations
                     b.Property<int>("OrderId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("PrecoUnitario")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Quantity")
+                    b.Property<int>("Quantidade")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -199,51 +154,21 @@ namespace MarketPlacer.DAL.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("MarketPlacer.DAL.Models.Cart", b =>
-                {
-                    b.HasOne("MarketPlacer.DAL.Models.User", "User")
-                        .WithOne("Cart")
-                        .HasForeignKey("MarketPlacer.DAL.Models.Cart", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("MarketPlacer.DAL.Models.CartItem", b =>
-                {
-                    b.HasOne("MarketPlacer.DAL.Models.Cart", "Cart")
-                        .WithMany("Items")
-                        .HasForeignKey("CartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MarketPlacer.DAL.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Cart");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("MarketPlacer.DAL.Models.Order", b =>
                 {
-                    b.HasOne("MarketPlacer.DAL.Models.User", "User")
+                    b.HasOne("MarketPlacer.DAL.Models.User", "Cliente")
                         .WithMany("Orders")
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("Cliente");
                 });
 
             modelBuilder.Entity("MarketPlacer.DAL.Models.OrderItem", b =>
                 {
-                    b.HasOne("MarketPlacer.DAL.Models.Order", "Order")
-                        .WithMany("OrderItems")
+                    b.HasOne("MarketPlacer.DAL.Models.Order", null)
+                        .WithMany("Itens")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -253,8 +178,6 @@ namespace MarketPlacer.DAL.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Order");
 
                     b.Navigation("Product");
                 });
@@ -270,20 +193,13 @@ namespace MarketPlacer.DAL.Migrations
                     b.Navigation("Vendedor");
                 });
 
-            modelBuilder.Entity("MarketPlacer.DAL.Models.Cart", b =>
-                {
-                    b.Navigation("Items");
-                });
-
             modelBuilder.Entity("MarketPlacer.DAL.Models.Order", b =>
                 {
-                    b.Navigation("OrderItems");
+                    b.Navigation("Itens");
                 });
 
             modelBuilder.Entity("MarketPlacer.DAL.Models.User", b =>
                 {
-                    b.Navigation("Cart");
-
                     b.Navigation("Orders");
 
                     b.Navigation("Products");

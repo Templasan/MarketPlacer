@@ -24,4 +24,8 @@ public class Product
 
     [JsonIgnore]
     public User? Vendedor { get; set; }
+
+    public int Estoque { get; set; } // Quantidade disponível
+
+    public bool Ativo { get; set; } = true; // Novo campo para Soft Delete
 }

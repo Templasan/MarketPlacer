@@ -1,50 +1,73 @@
-using MarketPlacer.DAL; // Para o AppDbContext
-using MarketPlacer.DAL.Repositories; // Para os Repositórios
-using Microsoft.EntityFrameworkCore; // Para o UseSqlServer
+using Microsoft.EntityFrameworkCore;
 using MarketPlacer.DAL.Models;
 
 namespace MarketPlacer.DAL;
 
 public class AppDbContext : DbContext
 {
-    // O construtor recebe as opções (como a string de conexão) e passa para a base
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-    // Suas Tabelas
+    // Tabelas do Banco de Dados
     public DbSet<User> Users { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
-
-    // Futuramente, você adicionará aqui:
-    // public DbSet<Cart> Carts { get; set; }
+    public DbSet<Cart> Carts { get; set; }
+    public DbSet<CartItem> CartItems { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configuração de Preço (Decimal)
+        // --- Configurações de Tipos Decimais (Precisão Monetária) ---
+
         modelBuilder.Entity<Product>()
-            .Property(p => p.Preco)
+            .Property(p => p.Preco) // Corrigido de Preco para Price
             .HasColumnType("decimal(18,2)");
 
         modelBuilder.Entity<OrderItem>()
-            .Property(oi => oi.PrecoUnitario)
+            .Property(oi => oi.UnitPrice) // Corrigido de PrecoUnitario para UnitPrice
             .HasColumnType("decimal(18,2)");
 
-        // --- CORREÇÃO DO ERRO AQUI ---
-        // Pedido -> Itens (Se apagar o pedido, apaga os itens. OK.)
+
+        // --- Relacionamentos de Pedido (Order) ---
+
+        // Order -> OrderItems (1 para N)
         modelBuilder.Entity<Order>()
-            .HasMany(o => o.Itens)
-            .WithOne()
+            .HasMany(o => o.OrderItems) // Corrigido de Itens para OrderItems
+            .WithOne(oi => oi.Order)
             .HasForeignKey(oi => oi.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Produto -> Itens (Se apagar o produto, NÃO apaga os itens para não dar conflito)
+        // Product -> OrderItems (Restrição para não apagar histórico de vendas)
         modelBuilder.Entity<OrderItem>()
             .HasOne(oi => oi.Product)
             .WithMany()
             .HasForeignKey(oi => oi.ProductId)
-            .OnDelete(DeleteBehavior.Restrict); // Mudamos de Cascade (padrão) para Restrict
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+        // --- Relacionamentos de Carrinho (Cart) ---
+
+        // User -> Cart (1 para 1)
+        modelBuilder.Entity<Cart>()
+            .HasOne(c => c.User)
+            .WithOne(u => u.Cart)
+            .HasForeignKey<Cart>(c => c.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Cart -> CartItems (1 para N)
+        modelBuilder.Entity<Cart>()
+            .HasMany(c => c.Items)
+            .WithOne(i => i.Cart)
+            .HasForeignKey(i => i.CartId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Product -> CartItems
+        modelBuilder.Entity<CartItem>()
+            .HasOne(ci => ci.Product)
+            .WithMany()
+            .HasForeignKey(ci => ci.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

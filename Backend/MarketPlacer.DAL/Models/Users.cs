@@ -20,6 +20,10 @@ public class User
     [Required]
     public string Tipo { get; set; } = string.Empty;
 
+    public bool Ativo { get; set; } = true;
+
+    public virtual Cart? Cart { get; set; }
+
     // Relacionamentos
     [JsonIgnore]
     public List<Product>? Products { get; set; }
