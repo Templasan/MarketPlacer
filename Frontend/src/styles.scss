@@ -1,0 +1,12 @@
+/* 1. Imports do Tailwind (Devem ficar no topo) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. Estilos do Angular Material (Geralmente já configurados pelo ng add) */
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* 3. Correções de Conflito (Opcional, mas recomendado) */
+/* O reset do Tailwind pode tirar o estilo de alguns elementos nativos. 
+   O Material geralmente resolve isso, mas se precisar forçar algo, use aqui. */

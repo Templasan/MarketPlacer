@@ -1,0 +1,59 @@
+<div class="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+  <mat-card class="w-full max-w-md !rounded-2xl p-6 shadow-xl border border-slate-100">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-indigo-700 flex items-center justify-center gap-2">
+        <mat-icon class="scale-125">storefront</mat-icon> MarketPlacer
+      </h1>
+      <p class="text-slate-500 mt-2">{{ isRegistering() ? 'Crie sua conta agora' : 'Bem-vindo de volta!' }}</p>
+    </div>
+
+    <form [formGroup]="authForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+      
+      @if (isRegistering()) {
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Nome Completo</mat-label>
+          <input matInput formControlName="nome">
+        </mat-form-field>
+
+        <div class="flex flex-col gap-2 mb-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Tipo de Perfil</label>
+          <mat-button-toggle-group formControlName="tipo" class="w-full !border-slate-200 !rounded-xl overflow-hidden">
+            <mat-button-toggle value="Comum" class="flex-1 !py-1">
+              <div class="flex items-center justify-center gap-2">
+                <mat-icon class="!text-sm">person</mat-icon> Comum
+              </div>
+            </mat-button-toggle>
+            <mat-button-toggle value="Vendedor" class="flex-1 !py-1">
+              <div class="flex items-center justify-center gap-2">
+                <mat-icon class="!text-sm">store</mat-icon> Vendedor
+              </div>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+      }
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>E-mail</mat-label>
+        <input matInput type="email" formControlName="email">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Senha</mat-label>
+        <input matInput type="password" formControlName="senha">
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" class="!py-6 !text-lg !rounded-xl" type="submit">
+        {{ isRegistering() ? 'Cadastrar' : 'Entrar' }}
+      </button>
+    </form>
+
+    <div class="mt-8 text-center border-t pt-6">
+      <p class="text-slate-600">
+        {{ isRegistering() ? 'Já tem uma conta?' : 'Ainda não tem conta?' }}
+        <button mat-button color="accent" (click)="toggleMode()">
+          {{ isRegistering() ? 'Fazer Login' : 'Cadastre-se' }}
+        </button>
+      </p>
+    </div>
+  </mat-card>
+</div>

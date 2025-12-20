@@ -1,0 +1,74 @@
+/* =========================================
+   1. Ajustes da Tabela (Material Table)
+   ========================================= */
+table.mat-mdc-table {
+  background: transparent; /* Deixa o fundo branco do card aparecer */
+}
+
+/* Cabeçalho da tabela mais destacado e sutil */
+tr.mat-mdc-header-row {
+  background-color: #f8fafc; /* slate-50 */
+  border-bottom-color: #e2e8f0; /* slate-200 */
+}
+
+/* Linhas da tabela com separação suave */
+tr.mat-mdc-row {
+  border-bottom-color: #f1f5f9; /* slate-100 */
+}
+
+/* =========================================
+   2. Ajustes das Abas (Material Tabs)
+   ========================================= */
+/* Ajuste para o conteúdo da aba não ficar colado no header */
+::ng-deep .mat-mdc-tab-body-content {
+  overflow: hidden !important; /* Evita scrollbar dupla indesejada */
+}
+
+/* Cor do indicador da aba ativa (a linha azul embaixo) */
+::ng-deep .mat-mdc-tab-group {
+  --mdc-tab-indicator-active-indicator-color: #4f46e5; /* indigo-600 */
+  --mat-tab-header-active-label-text-color: #4338ca; /* indigo-700 */
+  --mat-tab-header-inactive-label-text-color: #64748b; /* slate-500 */
+}
+
+/* =========================================
+   3. Inputs Apenas Leitura (Readonly)
+   ========================================= */
+/* ... mantenha os estilos de tabela e abas anteriores ... */
+
+/* =========================================
+   3. Inputs Apenas Leitura (Readonly)
+   ========================================= */
+   
+/* Alvo: Inputs que possuem o atributo [readonly] */
+.mat-mdc-form-field-type-mat-input input[readonly] {
+  cursor: not-allowed !important; /* Mostra o símbolo de bloqueio no mouse */
+  color: #64748b; /* Slate-500: deixa o texto um pouco mais cinza */
+}
+
+/* Opcional: Se quiser que o campo todo (container) mostre o cursor bloqueado */
+::ng-deep .mat-mdc-form-field.opacity-75 {
+  cursor: not-allowed !important;
+  
+  .mat-mdc-text-field-wrapper {
+    background-color: #f8fafc !important; /* Fundo cinza bem claro para reforçar que é fixo */
+  }
+}
+
+/* =========================================
+   4. Scrollbar Customizada (Padrão do App)
+   ========================================= */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
+}
