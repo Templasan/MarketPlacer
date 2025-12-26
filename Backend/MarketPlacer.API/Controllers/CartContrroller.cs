@@ -3,7 +3,7 @@ using MarketPlacer.Business.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.ComponentModel.DataAnnotations; // Isso resolve [Required] e [Range]
+using System.ComponentModel.DataAnnotations;
 
 namespace MarketPlacer.API.Controllers
 {
@@ -23,48 +23,95 @@ namespace MarketPlacer.API.Controllers
         [HttpGet]
         public async Task<ActionResult<CartDto>> GetCart()
         {
-            var userId = GetCurrentUserId();
-            var cart = await _cartService.GetCartAsync(userId);
-            return Ok(cart);
+            try
+            {
+                var userId = GetCurrentUserId();
+                var cart = await _cartService.GetCartAsync(userId);
+                return Ok(cart);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // POST: api/cart/items
         [HttpPost("items")]
         public async Task<IActionResult> AddItem([FromBody] AddCartItemDto dto)
         {
-            var userId = GetCurrentUserId();
-            await _cartService.AddItemToCartAsync(userId, dto.ProductId, dto.Quantity);
+            try
+            {
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
 
-            // Retorna o carrinho atualizado para o front sincronizar a UI imediatamente
-            var updatedCart = await _cartService.GetCartAsync(userId);
-            return Ok(updatedCart);
+                await _cartService.AddItemToCartAsync(userId, dto.ProductId, dto.Quantity, userRole);
+
+                // Retorna o carrinho atualizado para o front sincronizar a UI imediatamente
+                var updatedCart = await _cartService.GetCartAsync(userId);
+                return Ok(updatedCart);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // PUT: api/cart/items/{productId}
         [HttpPut("items/{productId}")]
-        public async Task<IActionResult> UpdateQuantity(int productId, [FromBody] int newQuantity)
+        public async Task<IActionResult> UpdateQuantity(int productId, [FromBody] UpdateQuantityDto dto)
         {
-            var userId = GetCurrentUserId();
-            await _cartService.UpdateItemQuantityAsync(userId, productId, newQuantity);
-            return NoContent();
+            try
+            {
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
+
+                await _cartService.UpdateItemQuantityAsync(userId, productId, dto.NewQuantity, userRole);
+
+                var updatedCart = await _cartService.GetCartAsync(userId);
+                return Ok(updatedCart);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // DELETE: api/cart/items/{productId}
         [HttpDelete("items/{productId}")]
         public async Task<IActionResult> RemoveItem(int productId)
         {
-            var userId = GetCurrentUserId();
-            await _cartService.RemoveItemAsync(userId, productId);
-            return NoContent();
+            try
+            {
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
+
+                await _cartService.RemoveItemAsync(userId, productId, userRole);
+
+                var updatedCart = await _cartService.GetCartAsync(userId);
+                return Ok(updatedCart);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // DELETE: api/cart
         [HttpDelete]
         public async Task<IActionResult> ClearCart()
         {
-            var userId = GetCurrentUserId();
-            await _cartService.ClearCartAsync(userId);
-            return NoContent();
+            try
+            {
+                var userId = GetCurrentUserId();
+                var userRole = GetCurrentUserRole();
+
+                await _cartService.ClearCartAsync(userId, userRole);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // POST: api/cart/checkout
@@ -79,45 +126,45 @@ namespace MarketPlacer.API.Controllers
                 return Ok(new
                 {
                     OrderId = orderId,
-                    Message = "Pedido finalizado com sucesso! O carrinho foi limpo."
+                    Message = "Pedido finalizado com sucesso! O estoque foi reservado."
                 });
             }
             catch (Exception ex)
             {
-                // Captura erros como "Carrinho Vazio" lançados no Service
-                return BadRequest(new { Error = ex.Message });
+                return BadRequest(new { error = ex.Message });
             }
         }
 
         // ==========================================
-        // MÉTODO DE EXTRAÇÃO DO JWT
+        // MÉTODOS DE EXTRAÇÃO DO TOKEN
         // ==========================================
+
         private int GetCurrentUserId()
         {
-            // Tenta pegar o ID do padrão NameIdentifier ou de uma claim customizada "id"
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("id");
-
-            if (claim == null)
+            if (claim == null || !int.TryParse(claim.Value, out int userId))
             {
-                // Se cair aqui, o token foi validado mas não contém o ID do usuário
-                throw new UnauthorizedAccessException("ID do usuário não encontrado no Token JWT.");
+                throw new UnauthorizedAccessException("Usuário não identificado.");
             }
-
-            if (!int.TryParse(claim.Value, out int userId))
-            {
-                throw new UnauthorizedAccessException("ID do usuário no Token é inválido.");
-            }
-
             return userId;
         }
+
+        private string GetCurrentUserRole()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value ?? "Comum";
+        }
     }
-}
 
-public class AddCartItemDto
-{
-    [Required]
-    public int ProductId { get; set; }
+    // --- DTOs Necessários ---
 
-    [Range(1, 999, ErrorMessage = "A quantidade deve ser no mínimo 1")]
-    public int Quantity { get; set; }
+    public class AddCartItemDto
+    {
+        [Required]
+        public int ProductId { get; set; }
+
+        [Range(1, 999, ErrorMessage = "A quantidade deve ser no mínimo 1")]
+        public int Quantity { get; set; }
+    }
+
+    public record UpdateQuantityDto(int NewQuantity);
 }

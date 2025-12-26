@@ -1,0 +1,47 @@
+/* =========================================
+   1. Correção das "Barrinhas" (Notch Outline)
+   ========================================= */
+::ng-deep {
+  /* Alinhamento do Label para não cortar a borda */
+  .mat-mdc-form-field-label-wrapper {
+    top: -1.5em;
+  }
+
+  /* Limpa o erro de borda do Material com Tailwind */
+  .mdc-notched-outline__notch {
+    border-right: none !important;
+  }
+
+  /* Cor e estilo da borda padrão */
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__leading,
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__notch,
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
+    border-color: #f1f5f9 !important; /* slate-100 */
+    border-width: 2px !important;
+  }
+
+  /* Cor da borda em foco */
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__leading,
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__notch,
+  .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__trailing {
+    border-color: #6366f1 !important; /* indigo-500 */
+  }
+}
+
+/* =========================================
+   2. Personalização do Toggle Group
+   ========================================= */
+::ng-deep .mat-button-toggle-group {
+  border: none !important;
+  background-color: #f8fafc !important; /* slate-50 */
+}
+
+::ng-deep .mat-button-toggle-checked {
+  background-color: #ffffff !important;
+  color: #4f46e5 !important; /* indigo-600 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+::ng-deep .mat-button-toggle-label-content {
+  line-height: normal !important;
+}

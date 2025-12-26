@@ -4,26 +4,29 @@ import { Product } from '../models/product.interface';
 import { CartItem } from '../models/cart-item.interface';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment'; // Importação do environment
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
   private http = inject(HttpClient);
   private snackBar = inject(MatSnackBar);
-  private readonly API_URL = 'http://localhost:5235/api/cart'; 
+  
+  // URL base agora vinda do environment para apontar para a porta 5000 no Docker
+  private readonly API_URL = `${environment.apiUrl}/cart`; 
   private readonly STORAGE_KEY = 'marketplacer_cart_v2';
 
   // ESTADO: Usando CartItem para agrupar (Produto + Quantidade)
   private cartItems = signal<CartItem[]>([]);
 
-  // SELECTORS
+  // SELECTORS (Computados)
   items = computed(() => this.cartItems());
   
-  // count: Soma as quantidades (2x Item A + 1x Item B = 3 no badge)
+  // count: Soma as quantidades totais de itens no carrinho
   count = computed(() => 
     this.cartItems().reduce((acc, item) => acc + item.quantity, 0)
   );
 
-  // total: Preço unitário * Quantidade
+  // total: Soma do Preço unitário * Quantidade de cada item
   total = computed(() => 
     this.cartItems().reduce((acc, item) => acc + (item.product.preco * item.quantity), 0)
   );
@@ -31,11 +34,15 @@ export class CartService {
   constructor() {
     this.loadInitialCart();
 
+    // Sincroniza o LocalStorage sempre que o sinal cartItems mudar
     effect(() => {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.cartItems()));
     });
   }
 
+  /**
+   * Adiciona um produto ao carrinho e sincroniza com o banco via API
+   */
   async addToCart(product: Product, quantity: number = 1) {
     if (product.estoque <= 0) {
       this.showToast('Produto sem estoque no momento.');
@@ -43,13 +50,13 @@ export class CartService {
     }
 
     try {
-      // 1. POST para o .NET (Sincronização de Banco)
+      // 1. POST para o .NET (Sincronização com o container da API)
       await firstValueFrom(this.http.post(`${this.API_URL}/items`, { 
         productId: product.id, 
         quantity: quantity 
       }));
 
-      // 2. Atualização Reativa com Agrupamento
+      // 2. Atualização Reativa local com Agrupamento
       this.cartItems.update(items => {
         const index = items.findIndex(i => i.product.id === product.id);
         
@@ -72,8 +79,10 @@ export class CartService {
     }
   }
 
+  /**
+   * Remove um item específico do carrinho no banco e localmente
+   */
   async removeItem(productId: number) {
-    // Verificação de segurança para evitar o erro de 'undefined' na URL
     if (!productId) {
       console.error('Falha ao remover: ID do produto é undefined');
       return;
@@ -83,7 +92,7 @@ export class CartService {
       // DELETE enviando o ID real do produto para a rota do .NET
       await firstValueFrom(this.http.delete(`${this.API_URL}/items/${productId}`));
       
-      // Filtra o Signal para remover a linha agrupada
+      // Filtra o Signal para remover a linha da interface
       this.cartItems.update(items => items.filter(i => i.product.id !== productId));
       this.showToast('Item removido do carrinho.');
     } catch (error) {
@@ -92,6 +101,9 @@ export class CartService {
     }
   }
 
+  /**
+   * Limpa o estado local e o cache do navegador
+   */
   clearCart() {
     this.cartItems.set([]);
     localStorage.removeItem(this.STORAGE_KEY);

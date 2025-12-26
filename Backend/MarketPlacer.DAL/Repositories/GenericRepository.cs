@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MarketPlacer.DAL.Models;
+using System.Linq.Expressions;
 
 namespace MarketPlacer.DAL.Repositories;
 
@@ -45,5 +46,10 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
             _dbSet.Remove(entity);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
+    {
+        return await _context.Set<T>().Where(predicate).ToListAsync();
     }
 }

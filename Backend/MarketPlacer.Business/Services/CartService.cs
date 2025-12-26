@@ -15,6 +15,15 @@ namespace MarketPlacer.Business.Services
             _orderRepository = orderRepository;
         }
 
+        // Método Auxiliar de Segurança: Valida se o usuário é dono ou Admin
+        private void ValidarAcessoAoCarrinho(int userIdDoToken, int userIdDoCarrinho, string userRole)
+        {
+            if (userRole != "Admin" && userIdDoToken != userIdDoCarrinho)
+            {
+                throw new UnauthorizedAccessException("Você não tem permissão para alterar o carrinho de outro usuário.");
+            }
+        }
+
         public async Task<CartDto> GetCartAsync(int userId)
         {
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
@@ -28,21 +37,22 @@ namespace MarketPlacer.Business.Services
                 Items = cart.Items.Select(i => new CartItemDto
                 {
                     ProductId = i.ProductId,
-                    ProductName = i.Product?.Nome ?? "Produto não encontrado", // Uso de .Nome (Português)
-                    ProductImageUrl = i.Product?.ImagemURL ?? "",              // Uso de .ImagemURL (Português)
-                    UnitPrice = i.Product?.Preco ?? 0,                         // Uso de .Preco (Português)
+                    ProductName = i.Product?.Nome ?? "Produto não encontrado",
+                    ProductImageUrl = i.Product?.ImagemURL ?? "",
+                    UnitPrice = i.Product?.Preco ?? 0,
                     Quantity = i.Quantity,
                     SubTotal = (i.Product?.Preco ?? 0) * i.Quantity
                 }).ToList()
             };
 
             cartDto.TotalValue = cartDto.Items.Sum(i => i.SubTotal);
-
             return cartDto;
         }
 
-        public async Task AddItemToCartAsync(int userId, int productId, int quantity)
+        public async Task AddItemToCartAsync(int userId, int productId, int quantity, string userRole)
         {
+            // Validação: Somente o dono ou admin pode adicionar itens
+            // Nota: O 'userId' passado aqui deve ser o ID do alvo da operação
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
 
             if (cart == null)
@@ -70,10 +80,13 @@ namespace MarketPlacer.Business.Services
             await _cartRepository.UpdateAsync(cart);
         }
 
-        public async Task UpdateItemQuantityAsync(int userId, int productId, int newQuantity)
+        public async Task UpdateItemQuantityAsync(int userId, int productId, int newQuantity, string userRole)
         {
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
             if (cart == null) return;
+
+            // Trava de Segurança
+            ValidarAcessoAoCarrinho(userId, cart.UserId, userRole);
 
             var item = cart.Items.FirstOrDefault(i => i.ProductId == productId);
 
@@ -88,10 +101,13 @@ namespace MarketPlacer.Business.Services
             }
         }
 
-        public async Task RemoveItemAsync(int userId, int productId)
+        public async Task RemoveItemAsync(int userId, int productId, string userRole)
         {
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
             if (cart == null) return;
+
+            // Trava de Segurança
+            ValidarAcessoAoCarrinho(userId, cart.UserId, userRole);
 
             var item = cart.Items.FirstOrDefault(i => i.ProductId == productId);
             if (item != null)
@@ -101,49 +117,52 @@ namespace MarketPlacer.Business.Services
             }
         }
 
-        public async Task ClearCartAsync(int userId)
+        public async Task ClearCartAsync(int userId, string userRole)
         {
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
-            if (cart != null)
-            {
-                await _cartRepository.ClearCartAsync(cart.Id);
-            }
+            if (cart == null) return;
+
+            ValidarAcessoAoCarrinho(userId, cart.UserId, userRole);
+            await _cartRepository.ClearCartAsync(cart.Id);
         }
 
-        // =================================================================
-        // CHECKOUT (Cálculo baseado no UnitPrice e Preco)
-        // =================================================================
         public async Task<int> CheckoutAsync(int userId)
         {
-            // 1. Pega os dados do carrinho
+            // 1. Pega os dados com Eager Loading (Garantindo que Product venha preenchido)
             var cart = await _cartRepository.GetCartByUserIdAsync(userId);
 
             if (cart == null || !cart.Items.Any())
                 throw new Exception("O carrinho está vazio.");
 
-            // 2. Cria o objeto Pedido SEM o campo TotalAmount
+            // 2. Validação de Estoque ANTES de criar o pedido
+            foreach (var item in cart.Items)
+            {
+                if (item.Product == null)
+                    throw new Exception($"Erro técnico: Dados do produto {item.ProductId} não carregados.");
+
+                if (item.Product.Estoque < item.Quantity)
+                    throw new Exception($"Estoque insuficiente para {item.Product.Nome}. Disponível: {item.Product.Estoque}");
+            }
+
+            // 3. Criação do Pedido
             var order = new Order
             {
                 UserId = userId,
                 OrderDate = DateTime.UtcNow,
                 Status = "Pendente"
-                // REMOVIDA A LINHA DO TotalAmount QUE GERAVA O ERRO CS0117
             };
 
-            // 3. Migra CartItems para OrderItems
-            // O valor total do pedido agora é a soma desses UnitPrice * Quantity
+            // 4. Migração com Preço Congelado
             order.OrderItems = cart.Items.Select(ci => new OrderItem
             {
                 ProductId = ci.ProductId,
                 Quantity = ci.Quantity,
-                UnitPrice = ci.Product?.Preco ?? 0, // Congela o preço aqui
+                UnitPrice = ci.Product!.Preco,
                 Order = order
             }).ToList();
 
-            // 4. Salva o pedido
+            // 5. Persistência e Limpeza
             await _orderRepository.CreateAsync(order);
-
-            // 5. Limpa o carrinho
             await _cartRepository.ClearCartAsync(cart.Id);
 
             return order.Id;

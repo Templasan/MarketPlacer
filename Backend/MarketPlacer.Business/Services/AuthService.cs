@@ -47,12 +47,23 @@ public class AuthService
     {
         // 1. Busca o usuário pelo e-mail
         var user = await _userRepository.GetUserByEmailAsync(email);
-        
-        // 2. Se não achar ou se a senha (após o hash) não bater, retorna nulo
-        if (user == null || user.Senha != HashPassword(senha))
-            return null;
 
-        // 3. Se estiver tudo certo, gera o Token JWT para o Front-end (Angular)
+        // 2. VALIDAÇÃO DE MVP:
+        // - Usuário existe?
+        // - A senha bate?
+        // - A conta está ativa? (Importante para o Soft Delete que você fez no UsersController)
+        if (user == null || user.Senha != HashPassword(senha))
+        {
+            return null; // Retorna nulo para "não autorizado"
+        }
+
+        if (!user.Ativo)
+        {
+            // Lança exceção para o Controller capturar e avisar: "Conta desativada"
+            throw new Exception("Esta conta foi desativada. Entre em contato com o suporte.");
+        }
+
+        // 3. Gera o Token com as Claims (incluindo a Role que o Angular vai usar)
         return GenerateJwtToken(user);
     }
 

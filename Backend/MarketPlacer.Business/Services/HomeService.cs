@@ -3,9 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using MarketPlacer.DAL.Models;
 using MarketPlacer.DAL;
 using MarketPlacer.Business.Dtos;
-using MarketPlacer.DAL.Repositories;
 
-namespace MarketPlacer.Business.Services; // Adicionado namespace
+namespace MarketPlacer.Business.Services;
 
 public class HomeService
 {
@@ -22,25 +21,31 @@ public class HomeService
     public async Task<HomeDataDto> GetHomeDataAsync()
     {
         // 1. Tenta buscar do Cache
-        if (_cache.TryGetValue(HomeCacheKey, out HomeDataDto? cachedHome)) // Adicionado nullability check
+        if (_cache.TryGetValue(HomeCacheKey, out HomeDataDto? cachedHome))
         {
             return cachedHome!;
         }
 
-        // 2. Configurações (Categorias que existem no seu banco)
+        // 2. Configurações
         var categoriesToShow = new List<string> { "Eletrônicos", "Espadas", "Poções", "Armaduras" };
         int itemsPerCategory = 5;
 
+        // 3. LÓGICA MELHORADA: Uma única consulta ao banco para todas as categorias
+        // Buscamos todos os produtos ativos das categorias desejadas
+        var allProducts = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Ativo && categoriesToShow.Contains(p.Categoria))
+            .OrderByDescending(p => p.Id)
+            .Select(p => new { p.Id, p.Nome, p.Preco, p.ImagemURL, p.Categoria })
+            .ToListAsync();
+
         var homeData = new HomeDataDto { CachedAt = DateTime.Now };
 
-        // 3. Monta as seções
+        // 4. Monta as seções em memória (muito mais rápido que ir ao banco várias vezes)
         foreach (var catName in categoriesToShow)
         {
-            // CORREÇÃO AQUI: Comparação direta com p.Categoria (que é string)
-            var products = await _context.Products
-                .AsNoTracking()
-                .Where(p => p.Categoria == catName && p.Ativo)
-                .OrderByDescending(p => p.Id)
+            var categoryProducts = allProducts
+                .Where(p => p.Categoria == catName)
                 .Take(itemsPerCategory)
                 .Select(p => new ProductMinDto
                 {
@@ -49,25 +54,31 @@ public class HomeService
                     Preco = p.Preco,
                     ImagemURL = p.ImagemURL
                 })
-                .ToListAsync();
+                .ToList();
 
-            if (products.Any())
+            if (categoryProducts.Any())
             {
                 homeData.Sections.Add(new CategorySectionDto
                 {
                     CategoryName = catName,
-                    Products = products
+                    Products = categoryProducts
                 });
             }
         }
 
-        // 4. Salva no Cache
+        // 5. Salva no Cache com expiração de 5 minutos
         var cacheOptions = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(15))
-            .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(5)) // Expira obrigatoriamente em 5 min
+            .SetPriority(CacheItemPriority.High);
 
         _cache.Set(HomeCacheKey, homeData, cacheOptions);
 
         return homeData;
+    }
+
+    // DICA: Método para limpar o cache quando um produto novo for criado (opcional)
+    public void ClearHomeCache()
+    {
+        _cache.Remove(HomeCacheKey);
     }
 }

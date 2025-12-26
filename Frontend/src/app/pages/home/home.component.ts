@@ -23,7 +23,8 @@ import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { AuthService } from '../../services/auth.service';
 
-// Componentes
+// Pipes e Componentes
+import { ImgUrlPipe } from '../../pipes/img-url.pipe';
 import { FilterDialogComponent } from '../../components/filter-dialog.component';
 import { CartDrawerComponent } from '../../components/cart-drawer.component';
 
@@ -31,9 +32,18 @@ import { CartDrawerComponent } from '../../components/cart-drawer.component';
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, ReactiveFormsModule, MatCardModule, MatButtonModule, 
-    MatIconModule, MatFormFieldModule, MatInputModule, MatDialogModule, 
-    MatTooltipModule, MatSidenavModule, CartDrawerComponent
+    CommonModule, 
+    ReactiveFormsModule, 
+    MatCardModule, 
+    MatButtonModule, 
+    MatIconModule, 
+    MatFormFieldModule, 
+    MatInputModule, 
+    MatDialogModule, 
+    MatTooltipModule, 
+    MatSidenavModule, 
+    CartDrawerComponent,
+    ImgUrlPipe
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
@@ -52,12 +62,17 @@ export class HomeComponent {
   currentPage = signal(1);
   pageSize = 12;
   
-  // Filtros ativos
   activeFilters = signal<{categoria?: string, min?: number, max?: number}>({});
   searchControl = new FormControl('', { nonNullable: true });
 
-  // --- Stream Reativa Principal ---
-  // Combinamos: Busca + Página + Filtros do Dialog
+  // --- Permissão de Vendedor ---
+  // Verifica se o usuário logado tem permissão de acesso ao painel
+  isVendedor = computed(() => {
+    const role = this.authService.getUserRole(); // Certifique-se que o método getUserRole existe no seu AuthService
+    return role === 'Vendedor' || role === 'Admin';
+  });
+
+  // --- Stream Reativa ---
   private productsResource = toSignal(
     combineLatest({
       termo: this.searchControl.valueChanges.pipe(
@@ -81,35 +96,34 @@ export class HomeComponent {
     )
   );
 
-  // --- Computed para o Template ---
+  // --- Computed ---
   products = computed(() => this.productsResource()?.items ?? []);
   totalItems = computed(() => this.productsResource()?.totalItems ?? 0);
   totalPages = computed(() => Math.ceil(this.totalItems() / this.pageSize));
 
-  // --- Ações ---
-
+  // --- Métodos ---
   changePage(delta: number) {
-    this.currentPage.update(p => p + delta);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const nextPage = this.currentPage() + delta;
+    if (nextPage > 0 && nextPage <= this.totalPages()) {
+      this.currentPage.set(nextPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   openFilters() {
     const dialogRef = this.dialog.open(FilterDialogComponent, {
       width: '400px',
-      panelClass: 'custom-dialog-container',
-      data: this.activeFilters() // Passa filtros atuais para o dialog
+      data: this.activeFilters()
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        // Mapeia o retorno do dialog para o que o Service espera
         this.activeFilters.set({
           min: result.price?.min,
           max: result.price?.max,
-          // Pega a chave da categoria que está como 'true'
           categoria: Object.keys(result.categories).find(key => result.categories[key])
         });
-        this.currentPage.set(1); // Reseta para pág 1 ao filtrar
+        this.currentPage.set(1);
       }
     });
   }
@@ -136,5 +150,9 @@ export class HomeComponent {
 
   navigateToProfile() {
     this.router.navigate(['/profile']);
+  }
+
+  navigateToSellerDashboard() {
+    this.router.navigate(['/seller']);
   }
 }

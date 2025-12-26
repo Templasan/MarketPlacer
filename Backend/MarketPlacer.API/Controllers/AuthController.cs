@@ -1,63 +1,70 @@
 using Microsoft.AspNetCore.Mvc;
-using MarketPlacer.Business.Services;
-using MarketPlacer.DAL.Models;
-using MarketPlacer.API.Dtos;
+using Microsoft.AspNetCore.Authorization; // Necessário para o [Authorize]
+using MarketPlacer.Business.Services;    // Necessário para o AuthService e outros
+using MarketPlacer.API.Dtos;             // Necessário para os DTOs (UpdateUserDto, etc)
+using MarketPlacer.DAL.Models;           // Necessário para as Entidades (User, Product)
 
-namespace MarketPlacer.API.Controllers;
 
-[Route("api/[controller]")]
-[ApiController]
-public class AuthController : ControllerBase
+namespace MarketPlacer.API.Controllers
 {
-    private readonly AuthService _authService;
-
-    public AuthController(AuthService authService)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
-        _authService = authService;
-    }
+        private readonly AuthService _authService;
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-    {
-        try
+        public AuthController(AuthService authService)
         {
-            // Convertemos o DTO para a Entidade User antes de enviar para o Service
-            var user = new User
-            {
-                Nome = request.Nome,
-                Email = request.Email,
-                Senha = request.Senha, // No futuro, você fará o Hash aqui
-                Tipo = request.Tipo,
-                Ativo = true
-            };
-
-            var createdUser = await _authService.RegisterAsync(user);
-
-            // Retornamos um objeto limpo para não expor a senha no retorno
-            return Ok(new
-            {
-                Id = createdUser.Id,
-                Nome = createdUser.Nome,
-                Email = createdUser.Email
-            });
+            _authService = authService;
         }
-        catch (Exception ex)
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            return BadRequest(ex.Message);
+            try
+            {
+                // Validação básica manual se necessário
+                if (string.IsNullOrEmpty(request.Email)) return BadRequest(new { error = "E-mail é obrigatório" });
+
+                var user = new User
+                {
+                    Nome = request.Nome,
+                    Email = request.Email,
+                    Senha = request.Senha, // Lembrete: Implementar BCrypt ou Argon2 futuramente
+                    Tipo = request.Tipo,
+                    Ativo = true
+                };
+
+                var createdUser = await _authService.RegisterAsync(user);
+
+                return Ok(new
+                {
+                    Id = createdUser.Id,
+                    Nome = createdUser.Nome,
+                    Email = createdUser.Email,
+                    Tipo = createdUser.Tipo
+                });
+            }
+            catch (Exception ex)
+            {
+                // Retorno em formato JSON para o Angular (snackBar) ler corretamente
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            var token = await _authService.LoginAsync(request.Email, request.Senha);
+
+            if (token == null)
+                return Unauthorized(new { error = "Usuário ou senha inválidos." });
+
+            return Ok(new { Token = token });
         }
     }
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        var token = await _authService.LoginAsync(request.Email, request.Senha);
-
-        if (token == null)
-            return Unauthorized("Usuário ou senha inválidos.");
-
-        return Ok(new { Token = token });
-    }
+    // DTOs definidos claramente para evitar erro 400 de conversão
+    public record RegisterRequest(string Nome, string Email, string Senha, string Tipo);
+    public record LoginRequest(string Email, string Senha);
 }
-
-// DTO simples para o Login (pode ficar no mesmo arquivo para agilizar)
-public record LoginRequest(string Email, string Senha);

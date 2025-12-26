@@ -15,16 +15,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // --- 2. CONFIGURAÇÃO DE REPOSITÓRIOS E SERVICES ---
-// Injeções Genéricas
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-// Repositórios Específicos
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 
-// Serviços de Negócio
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ProductService>();
@@ -32,10 +29,9 @@ builder.Services.AddScoped<CartService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<HomeService>();
 
-builder.Services.AddMemoryCache(); // Necessário para o HomeService
+builder.Services.AddMemoryCache();
 
 // --- 3. CONFIGURAÇÃO DO JWT (AUTENTICAÇÃO) ---
-// CHAVE IDÊNTICA AO AUTHSERVICE:
 var keyString = "Chave_Mestra_Super_Secreta_Fatec_2025_Minimo_32_Chars!";
 var key = Encoding.ASCII.GetBytes(keyString);
 
@@ -54,7 +50,6 @@ builder.Services.AddAuthentication(x =>
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false,
-        // CORREÇÃO DA ROLE: Faz o C# entender a claim "role" do seu token
         RoleClaimType = ClaimTypes.Role
     };
 });
@@ -67,7 +62,6 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "MarketPlacer API", Version = "v1" });
 
-    // Configuração do Botão "Authorize" (Cadeado)
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Digite 'Bearer' [espaço] e o seu token.\nExemplo: Bearer eyJhbGci...",
@@ -106,9 +100,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// O CORS deve vir antes de servir arquivos e da autenticação
 app.UseCors("AllowAll");
 
-// A ORDEM AQUI É SAGRADA PARA O AUTH FUNCIONAR
+// ESSENCIAL: Permite que o navegador acesse a pasta wwwroot (onde estão as imagens)
+app.UseStaticFiles();
+
+// A ordem aqui é fundamental: Primeiro Autentica, depois Autoriza
 app.UseAuthentication();
 app.UseAuthorization();
 

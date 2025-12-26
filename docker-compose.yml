@@ -1,0 +1,34 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: marketplacer-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuaSenhaForte123!
+    ports:
+      - "1433:1433"
+
+  api:
+    build:
+      context: .  # MUDANÇA: Agora o contexto é a raiz de tudo
+      dockerfile: ./BACKEND/Dockerfile # Caminho para o arquivo dentro da pasta
+    container_name: marketplacer-api
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=MarketPlacerDB;User Id=sa;Password=SuaSenhaForte123!;TrustServerCertificate=True;
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5000:8080"
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: ./FRONTEND
+      dockerfile: Dockerfile
+    container_name: marketplacer-web
+    ports:
+      - "4200:80"
+    depends_on:
+      - api

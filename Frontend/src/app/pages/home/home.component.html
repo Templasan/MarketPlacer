@@ -9,121 +9,108 @@
 
   <mat-sidenav-content class="relative h-full flex flex-col overflow-x-hidden">
     
-    <header class="bg-white shadow-sm sticky top-0 z-20">
-      <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+    <header class="bg-white shadow-sm sticky top-0 z-20 w-full">
+      <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
         
-        <h1 class="text-2xl font-bold text-indigo-700 tracking-tight flex items-center gap-2 cursor-pointer" (click)="searchControl.setValue('')">
-          <mat-icon class="text-indigo-700">storefront</mat-icon>
-          Market<span class="text-slate-800">Placer</span>
-        </h1>
+        <div class="flex items-center justify-center w-full md:w-auto">
+          <h1 class="text-xl sm:text-2xl font-bold text-indigo-700 tracking-tight flex items-center gap-2 cursor-pointer whitespace-nowrap" 
+              (click)="searchControl.setValue('')">
+            <mat-icon class="text-indigo-700 !hidden sm:!inline-block">storefront</mat-icon>
+            Market<span class="text-slate-800">Placer</span>
+          </h1>
+        </div>
         
-        <mat-form-field appearance="outline" class="compact-search w-full md:w-96 text-sm density-compact subscript-wrapper-off">
-          <mat-label>O que você procura hoje?</mat-label>
-          <mat-icon matPrefix class="text-slate-400 mr-2">search</mat-icon>
+        <mat-form-field appearance="outline" class="compact-search w-full md:w-96">
+          <mat-label>O que você procura?</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
           <input matInput [formControl]="searchControl" placeholder="Ex: iPhone, Tênis...">
-          <div matSuffix class="h-6 w-px bg-slate-300 mx-2 hidden md:block"></div>
-          <button matSuffix mat-icon-button (click)="openFilters()" class="!text-indigo-600" matTooltip="Filtrar resultados">
+          <button matSuffix mat-icon-button (click)="openFilters()" class="text-indigo-600">
             <mat-icon>tune</mat-icon>
           </button>
         </mat-form-field>
 
-        <div class="hidden md:flex gap-2">
-          <button mat-icon-button class="!text-slate-600 relative" aria-label="Carrinho" (click)="toggleCart()">
+        <div class="hidden md:flex gap-2 items-center">
+          @if (isVendedor()) {
+            <button mat-flat-button color="accent" 
+                     (click)="navigateToSellerDashboard()" 
+                    class="!rounded-full !px-4 mr-2 !font-bold shadow-sm">
+              <mat-icon class="mr-1">dashboard</mat-icon>
+              Painel Vendedor
+            </button>
+          }
+
+          <button mat-icon-button class="!text-slate-600 relative" (click)="toggleCart()">
             <mat-icon>shopping_cart</mat-icon>
             @if (cartCount() > 0) {
-              <span class="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                {{ cartCount() }}
-              </span>
+              <span class="cart-badge">{{ cartCount() }}</span>
             }
           </button>
-          <button mat-icon-button class="!text-slate-600" aria-label="Minha Conta" (click)="navigateToProfile()">
+          
+          <button mat-icon-button class="!text-slate-600" (click)="navigateToProfile()">
             <mat-icon>person</mat-icon>
           </button>
         </div>
       </div>
     </header>
 
-    <main class="container mx-auto px-4 mt-8 flex-grow pb-10">
+    <main class="container mx-auto px-4 mt-6 flex-grow pb-32 md:pb-10">
       
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-slate-800 border-l-4 border-indigo-600 pl-3">
-          @if (searchControl.value) { Resultados para "{{ searchControl.value }}" } @else { Destaques da Semana }
+        <h2 class="text-lg font-bold text-slate-800 border-l-4 border-indigo-600 pl-3">
+          @if (searchControl.value) { Resultados para "{{ searchControl.value }}" } @else { Vitrine }
         </h2>
-        <span class="text-slate-400 text-sm">{{ totalItems() }} produtos encontrados</span>
+        <span class="text-slate-400 text-xs sm:text-sm">{{ totalItems() }} itens</span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         @for (produto of products(); track produto.id) {
-          <mat-card (click)="goToProduct(produto.id)" class="group hover:shadow-2xl transition-all duration-300 !rounded-xl overflow-hidden border border-slate-100 cursor-pointer h-full flex flex-col">
+          <mat-card (click)="goToProduct(produto.id)" 
+                    class="group hover:shadow-xl transition-all !rounded-xl cursor-pointer overflow-hidden border border-slate-100 h-full flex flex-col">
             
-            <div class="relative overflow-hidden h-48 bg-slate-100">
-              <img [src]="produto.imagemURL" [alt]="produto.nome" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-              <span class="absolute top-2 right-2 bg-white/90 backdrop-blur text-xs font-semibold px-2 py-1 rounded-md shadow-sm text-slate-700">
+            <div class="relative h-48 bg-slate-100 overflow-hidden">
+              <img [src]="produto.imagemURL | imgUrl" [alt]="produto.nome" 
+                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              
+              <span class="absolute top-2 right-2 bg-white/90 backdrop-blur text-[10px] font-bold px-2 py-1 rounded shadow-sm text-indigo-700 uppercase">
                 {{ produto.categoria }}
               </span>
             </div>
 
             <mat-card-content class="p-4 flex-grow flex flex-col">
-              <h3 class="text-lg font-semibold text-slate-800 leading-tight mb-2 line-clamp-2 min-h-[3rem]">
+              <h3 class="text-sm sm:text-md font-semibold text-slate-800 line-clamp-2 mb-4 h-10 sm:h-12">
                 {{ produto.nome }}
               </h3>
               
-              <div class="mt-auto flex items-center justify-between pt-2 border-t border-slate-100">
-                <div class="flex flex-col">
-                  <span class="text-xl font-bold text-green-600">{{ produto.preco | currency:'BRL' }}</span>
-                </div>
-                
-                <button mat-mini-fab color="primary" 
-                        (click)="$event.stopPropagation(); addToCart(produto)" 
-                        class="!shadow-none group-hover:!shadow-lg transition-shadow">
+              <div class="mt-auto flex items-center justify-between">
+                <span class="text-md sm:text-lg font-bold text-indigo-600">{{ produto.preco | currency:'BRL' }}</span>
+                <button mat-mini-fab color="primary" (click)="$event.stopPropagation(); addToCart(produto)">
                   <mat-icon>add_shopping_cart</mat-icon>
                 </button>
               </div>
             </mat-card-content>
           </mat-card>
-        } @empty {
-          <div class="col-span-full flex flex-col items-center py-20 text-slate-400">
-            <mat-icon class="!w-12 !h-12 text-slate-300 mb-2">search_off</mat-icon>
-            <p>Nenhum produto encontrado para sua busca.</p>
-          </div>
         }
       </div>
-
-      @if (totalPages() > 1) {
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-6 mt-12 py-8 border-t border-slate-100">
-          
-          <button mat-stroked-button 
-                  [disabled]="currentPage() === 1" 
-                  (click)="changePage(-1)"
-                  class="!rounded-xl !py-6 !px-6 border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-            <mat-icon class="mr-1">chevron_left</mat-icon> Anterior
-          </button>
-
-          <div class="flex items-center gap-3">
-            <span class="text-sm font-bold text-slate-400 uppercase tracking-widest">Página</span>
-            <div class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-lg shadow-indigo-100 scale-110">
-              {{ currentPage() }}
-            </div>
-            <span class="text-sm font-bold text-slate-400 uppercase tracking-widest">de {{ totalPages() }}</span>
-          </div>
-
-          <button mat-stroked-button 
-                  [disabled]="currentPage() >= totalPages()" 
-                  (click)="changePage(1)"
-                  class="!rounded-xl !py-6 !px-6 border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-            Próximo <mat-icon class="ml-1">chevron_right</mat-icon>
-          </button>
-        </div>
-      }
     </main>
 
-    <div class="fixed bottom-6 left-6 z-[999] md:hidden">
-      <button mat-fab color="primary" class="!shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300" 
-              (click)="toggleCart()" aria-label="Ver Carrinho">
+    <div class="fixed bottom-6 left-6 z-[999] md:hidden flex flex-col gap-3">
+      <button mat-mini-fab class="!bg-white !text-slate-600 shadow-lg" (click)="navigateToProfile()" matTooltip="Meu Perfil">
+        <mat-icon>person</mat-icon>
+      </button>
+
+      @if (isVendedor()) {
+        <button mat-fab color="accent" (click)="navigateToSellerDashboard()" class="shadow-xl">
+          <mat-icon>dashboard</mat-icon>
+        </button>
+      }
+      
+      <button mat-fab color="primary" class="!shadow-2xl" (click)="toggleCart()">
         <mat-icon>shopping_cart</mat-icon>
-        <span class="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-          {{ cartCount() }}
-        </span>
+        @if (cartCount() > 0) {
+          <span class="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+            {{ cartCount() }}
+          </span>
+        }
       </button>
     </div>
 

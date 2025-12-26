@@ -2,12 +2,21 @@ import { Component, inject, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { Router, RouterModule } from '@angular/router'; // Importação do RouterModule adicionada
 import { CartService } from '../services/cart.service';
+import { ImgUrlPipe } from '../pipes/img-url.pipe'; 
 
 @Component({
   selector: 'app-cart-drawer',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule],
+  // Adicionado RouterModule nos imports para garantir consistência com o Router inject
+  imports: [
+    CommonModule, 
+    MatIconModule, 
+    MatButtonModule, 
+    ImgUrlPipe, 
+    RouterModule 
+  ], 
   template: `
     <div class="h-full flex flex-col p-6 bg-white shadow-xl">
       <div class="flex items-center justify-between border-b pb-4 mb-4">
@@ -20,10 +29,11 @@ import { CartService } from '../services/cart.service';
         </button>
       </div>
 
-      <div class="flex-grow overflow-y-auto space-y-4 pr-2">
+      <div class="flex-grow overflow-y-auto space-y-4 pr-2 custom-scrollbar">
         @for (item of cart.items(); track item.product.id) {
           <div class="flex gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 items-center">
-            <img [src]="item.product.imagemURL" class="w-16 h-16 rounded-xl object-cover border border-white shadow-sm">
+            <img [src]="item.product.imagemURL | imgUrl" 
+                 class="w-16 h-16 rounded-xl object-cover border border-white shadow-sm bg-slate-200">
             
             <div class="flex-grow">
               <h4 class="font-bold text-slate-800 text-sm line-clamp-1">{{ item.product.nome }}</h4>
@@ -45,7 +55,7 @@ import { CartService } from '../services/cart.service';
         } @empty {
           <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-50">
             <mat-icon class="!w-16 !h-16 !text-6xl mb-4">remove_shopping_cart</mat-icon>
-            <p>O carrinho está vazio</p>
+            <p class="font-medium">O carrinho está vazio</p>
           </div>
         }
       </div>
@@ -56,16 +66,28 @@ import { CartService } from '../services/cart.service';
             <span class="text-slate-500 font-medium">Subtotal</span>
             <span class="text-2xl font-black text-slate-900">{{ cart.total() | currency:'BRL' }}</span>
           </div>
-          <button mat-flat-button color="primary" 
-                  class="w-full !py-7 !text-lg !rounded-2xl !font-bold shadow-lg shadow-indigo-100 transition-transform active:scale-95">
+          <button mat-flat-button color="primary"
+                  (click)="irParaCheckout()" 
+                  class="w-full !py-7 !text-lg !rounded-2xl !font-bold shadow-lg shadow-indigo-100 transition-all hover:brightness-110 active:scale-95">
             Finalizar Compra
           </button>
         </div>
       }
     </div>
-  `
+  `,
+  styles: [`
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+  `]
 })
 export class CartDrawerComponent {
   cart = inject(CartService);
   onClose = output<void>();
+  private router = inject(Router);
+
+  irParaCheckout() {
+    this.onClose.emit(); // Emite o fechamento para o componente pai (Sidenav)
+    this.router.navigate(['/checkout']);
+  }
 }
