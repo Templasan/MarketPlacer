@@ -1,20 +1,20 @@
-# Est·gio de Build - MUDADO PARA 9.0
+# Est√°gio de Build
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# 1. Copia todos os arquivos
+# 1. Copia todos os arquivos da raiz (Contexto: .)
 COPY . .
 
-# 2. Restaura as dependÍncias (ajuste para o caminho exato da sua pasta)
-RUN dotnet restore "Backend/MarketPlacer.API/MarketPlacer.API.csproj"
+# 2. Ajustado para o caminho real: BACKEND/MarketPlacer.API.csproj
+RUN dotnet restore "BACKEND/MarketPlacer.API.csproj"
 
-# 3. Publica a aplicaÁ„o
-RUN dotnet publish "Backend/MarketPlacer.API/MarketPlacer.API.csproj" -c Release -o /app
+# 3. Publica a aplica√ß√£o
+RUN dotnet publish "BACKEND/MarketPlacer.API.csproj" -c Release -o /app
 
-# Est·gio de ExecuÁ„o - MUDADO PARA 9.0
+# Est√°gio de Execu√ß√£o
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app .
 
-# Ajuste conforme o nome exato da sua DLL
+# O nome da DLL deve ser exatamente o nome do projeto
 ENTRYPOINT ["dotnet", "MarketPlacer.API.dll"]
