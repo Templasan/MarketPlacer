@@ -49,6 +49,7 @@ namespace MarketPlacer.API.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> Listar([FromQuery] string? nome, [FromQuery] string? categoria, [FromQuery] decimal? min, [FromQuery] decimal? max, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             var result = await _productService.ListarProdutosAsync(nome, categoria, min, max, page, pageSize);
@@ -56,6 +57,7 @@ namespace MarketPlacer.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> ObterPorId(int id)
         {
             var produto = await _productService.ObterPorIdAsync(id);

@@ -19,6 +19,7 @@ namespace MarketPlacer.API.Controllers
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             try
@@ -53,6 +54,7 @@ namespace MarketPlacer.API.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var token = await _authService.LoginAsync(request.Email, request.Senha);
