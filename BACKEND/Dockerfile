@@ -6,10 +6,10 @@ WORKDIR /src
 COPY . .
 
 # 2. Ajustado para o caminho real: BACKEND/MarketPlacer.API.csproj
-RUN dotnet restore "BACKEND/MarketPlacer.API.csproj"
+RUN dotnet restore "BACKEND/MarketPlacer.API/MarketPlacer.API.csproj"
 
 # 3. Publica a aplicação
-RUN dotnet publish "BACKEND/MarketPlacer.API.csproj" -c Release -o /app
+RUN dotnet publish "BACKEND/MarketPlacer.API/MarketPlacer.API.csproj" -c Release -o /app
 
 # Estágio de Execução
 FROM mcr.microsoft.com/dotnet/aspnet:9.0

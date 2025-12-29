@@ -11,6 +11,7 @@
         }
       },
       "root": "",
+      "proxyConfig": "proxy.conf.json"
       "sourceRoot": "src",
       "prefix": "app",
       "architect": {
